@@ -33,7 +33,7 @@ jobs:
 
       - name: Build
         run: |
-          go build -v -o netflix-all-verify ./...
+          go build -v -o netflix-all-verify .
       - name: Gzip
         run: |
           mkdir netflix-${{ matrix.os }}
