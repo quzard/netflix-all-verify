@@ -8,8 +8,7 @@ Netflix的大规模封锁,网上的Netflix检测脚本只有本地检测的功�
 
 ## 使用方法
 
-运行 netflix-all-verify后输入clash的订阅地址
-
+在终端运行 netflix-all-verify后输入clash的订阅地址
 ```bash
 ./netflix-all-verify
 ```
