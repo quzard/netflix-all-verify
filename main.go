@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"netflix-all-verify/nf"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -43,6 +44,12 @@ func relay(l, r net.Conn) {
 }
 
 func main() {
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	fmt.Println(exPath)
 	//输入订阅链接
 	fmt.Println("请输入clash订阅链接(非clash订阅请进行订阅转换)")
 	var urlConfig string
@@ -56,7 +63,7 @@ func main() {
 	}
 	defer res.Body.Close()
 	//创建配置文件
-	f, err := os.OpenFile("config.yaml", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
+	f, err := os.OpenFile(exPath+"/config.yaml", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
 	if err != nil {
 		fmt.Println("clash的订阅链接下载失败！")
 		time.Sleep(10 * time.Second)
@@ -64,7 +71,7 @@ func main() {
 	}
 	io.Copy(f, res.Body)
 	//解析配置信息
-	config, err := executor.ParseWithPath("config.yaml")
+	config, err := executor.ParseWithPath(exPath + "/config.yaml")
 	if err != nil {
 		return
 	}
@@ -98,7 +105,7 @@ func main() {
 	}()
 
 	//创建netflix.txt
-	f, err = os.OpenFile("netflix.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	f, err = os.OpenFile(exPath+"/netflix.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	defer f.Close()
 	if err != nil {
 		fmt.Println("新建netflix.txt失败：", err)
