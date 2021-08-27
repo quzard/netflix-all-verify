@@ -98,9 +98,11 @@ func main() {
 	}()
 
 	//创建netflix.txt
-	f, err = os.OpenFile("netflix.txt", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
+	f, err = os.OpenFile("netflix.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	defer f.Close()
-
+	if err != nil {
+		fmt.Println("新建netflix.txt失败：", err)
+	}
 	index := 1
 	nodes := config.Proxies
 
@@ -109,19 +111,17 @@ func main() {
 			continue
 		}
 		proxy = server
-		//Netflix检测
-		_, out := nf.NF("http://" + proxyUrl)
 		//落地机IP
 		ip := getIP()
-		//输出文本
 		str := fmt.Sprintf("%d   节点名: %s ip地址:%s\n", index, node, ip)
-		if out != "" {
-			str += out
-		} else {
-			str += "完全不支持Netflix"
+		fmt.Print(str)
+		//Netflix检测
+		_, out := nf.NF("http://" + proxyUrl)
+		if out == "" {
+			out = "完全不支持Netflix"
 		}
-		fmt.Println(str)
-		fmt.Fprintln(f, enc.ConvertString(str))
+		fmt.Println(out)
+		fmt.Fprintln(f, enc.ConvertString(str+out))
 		index++
 	}
 }
