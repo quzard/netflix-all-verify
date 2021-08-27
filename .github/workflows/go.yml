@@ -33,12 +33,12 @@ jobs:
 
       - name: Build
         run: |
-          go build -v -o nf .
+          go build -v -o  .
 
       - name: Gzip
         run: |
           mkdir netflix-${{ matrix.os }}
-          cp nf netflix-${{ matrix.os }}
+          cp netflix-all-verify  netflix-${{ matrix.os }}
           tar -czvf netflix-${{ matrix.os }}.tar.gz netflix-${{ matrix.os }}
 
       - name: Upload assets

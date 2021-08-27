@@ -1,4 +1,5 @@
 **/.idea
 **/.DS_Store
-**/nf
-**/netflix.txt
+netflix-all-verify
+config.yaml
+netflix.txt

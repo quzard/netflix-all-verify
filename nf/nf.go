@@ -1,14 +1,9 @@
-package main
+package nf
 
 import (
-	"bytes"
 	"crypto/tls"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,11 +13,9 @@ import (
 	"time"
 )
 
-var proxyPort = flag.String("proxy", "", "clash的代理端口")
-var controlPort = flag.String("control", "", "clash的控制端口")
-var netflix = flag.String("netflix", "1", "是否只显示能解锁的节点")
-
 const Netflix = "https://www.netflix.com/title/"
+
+var proxyUrl string
 
 func RequestIP(requrl string, ip string) string {
 	if ip == "" {
@@ -37,7 +30,6 @@ func RequestIP(requrl string, ip string) string {
 		ip = host
 	}
 
-	proxyUrl := "http://127.0.0.1:" + *proxyPort
 	proxy, _ := url.Parse(proxyUrl)
 	netTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{ServerName: host},
@@ -116,7 +108,8 @@ func FindCountry(Code string) string {
 	return Code
 }
 
-func nf() (bool, string) {
+func NF(url string) (bool, string) {
+	proxyUrl = url
 	var ipv4 string
 
 	var areaAvailableID = 80018499
@@ -183,132 +176,4 @@ func nf() (bool, string) {
 		}
 	}
 	return false, ""
-}
-
-func setGlobal() bool {
-	type clashMode struct {
-		Mode string `json:"mode"`
-	}
-	jsonStr := clashMode{
-		Mode: "Global",
-	}
-
-	dataJson, _ := json.Marshal(jsonStr)
-	urlGlobal := "http://127.0.0.1:" + *controlPort + "/configs"
-
-	req, _ := http.NewRequest(http.MethodPatch, urlGlobal, bytes.NewBuffer(dataJson))
-	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-
-	if resp.StatusCode != 204 {
-		return false
-	}
-	return true
-}
-func getNodes() []string {
-	type clashProxies struct {
-		Proxies struct {
-			Global struct {
-				All []string `json:"all"`
-			} `json:"GLOBAL"`
-		}
-	}
-	urlGet := "http://127.0.0.1:" + *controlPort + "/proxies"
-	resp, err := http.Get(urlGet)
-	if err != nil {
-		return nil
-	}
-
-	if resp.StatusCode != 200 {
-		return nil
-	}
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			fmt.Println("clash 节点获取失败")
-			time.Sleep(10 * time.Second)
-			os.Exit(3)
-		}
-	}(resp.Body)
-
-	body, _ := ioutil.ReadAll(resp.Body)
-
-	var nodes clashProxies
-	err = json.Unmarshal(body, &nodes)
-	if err != nil {
-		return nil
-	}
-	return nodes.Proxies.Global.All
-}
-func setNode(node string) {
-	type nodePost struct {
-		Name string `json:"name"`
-	}
-	jsonStr := nodePost{
-		Name: node,
-	}
-	client := &http.Client{}
-	dataJson, _ := json.Marshal(jsonStr)
-	urlSet := "http://127.0.0.1:" + *controlPort + "/proxies/GLOBAL"
-	req, _ := http.NewRequest(http.MethodPut, urlSet, bytes.NewBuffer(dataJson))
-	req.Header.Set("Content-Type", "application/json")
-	_, err := client.Do(req)
-	if err != nil {
-		fmt.Println("clash 设置节点失败")
-		time.Sleep(10 * time.Second)
-		os.Exit(3)
-	}
-}
-func main() {
-	flag.Parse()
-	fmt.Println("检测开始")
-	//设置为全局
-	status := setGlobal()
-	if !status {
-		fmt.Println("端口错误或者clash软件没有打开")
-		time.Sleep(10 * time.Second)
-		os.Exit(3)
-	}
-	//获取节点
-	nodes := getNodes()
-	if nodes == nil {
-		fmt.Println("端口错误或者clash软件没有打开")
-		time.Sleep(10 * time.Second)
-		os.Exit(3)
-	}
-
-	index := 1
-	f, err := os.OpenFile("netflix.txt", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	for _, node := range nodes {
-		setNode(node)
-		isNetflix, out := nf()
-		if *netflix == "1" {
-			if isNetflix == false {
-				continue
-			}
-		}
-		if out != "" {
-			fmt.Printf("%d-%d   节点名: %s\n", index, len(nodes), node)
-			fmt.Println(out)
-			fmt.Fprintf(f, "%d-%d   节点名: %s\n", index, len(nodes), node)
-			fmt.Fprintln(f, out)
-		} else {
-			fmt.Printf("%d-%d   节点名: %s\n", index, len(nodes), node)
-			fmt.Println("完全不支持Netflix")
-			fmt.Fprintf(f, "%d-%d   节点名: %s\n", index, len(nodes), node)
-			fmt.Fprintln(f, "完全不支持Netflix")
-		}
-		index++
-	}
-	fmt.Println("检测结束")
 }
