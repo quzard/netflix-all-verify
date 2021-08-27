@@ -89,7 +89,7 @@ jobs:
       - name: Gzip
         run: |
           mkdir netflix-${{ matrix.os }}
-          cp netflix-all-verify  netflix-${{ matrix.os }}
+          cp netflix-all-verify.exe  netflix-${{ matrix.os }}
           tar -czvf netflix-${{ matrix.os }}.tar.gz netflix-${{ matrix.os }}
 
       - name: Upload assets
