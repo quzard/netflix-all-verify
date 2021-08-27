@@ -15,11 +15,12 @@ import (
 	"netflix-all-verify/nf"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
 var proxy constant.Proxy
-var proxyUrl = "127.0.0.1:10000"
+var proxyUrl = "127.0.0.1:"
 
 func getIP() string {
 	proxy, _ := url.Parse("http://" + proxyUrl)
@@ -42,6 +43,23 @@ func getIP() string {
 func relay(l, r net.Conn) {
 	go io.Copy(l, r)
 	io.Copy(r, l)
+}
+
+// 获取可用端口
+func GetAvailablePort() (int, error) {
+	address, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:0", "127.0.0.1"))
+	if err != nil {
+		return 0, err
+	}
+
+	listener, err := net.ListenTCP("tcp", address)
+	if err != nil {
+		return 0, err
+	}
+
+	defer listener.Close()
+	return listener.Addr().(*net.TCPAddr).Port, nil
+
 }
 
 func main() {
@@ -76,6 +94,9 @@ func main() {
 	if err != nil {
 		return
 	}
+	//获取端口
+	port, _ := GetAvailablePort()
+	proxyUrl += strconv.Itoa(port)
 	//开启代理
 	in := make(chan constant.ConnContext, 100)
 	defer close(in)
