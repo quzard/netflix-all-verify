@@ -24,6 +24,7 @@ var proxyUrl = "127.0.0.1:10000"
 func getIP() string {
 	proxy, _ := url.Parse("http://" + proxyUrl)
 	client := h.Client{
+		Timeout: 5 * time.Second,
 		Transport: &h.Transport{
 			// 设置代理
 			Proxy: h.ProxyURL(proxy),
