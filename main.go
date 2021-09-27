@@ -162,8 +162,9 @@ func main() {
 	excel := excelize.NewFile()
 	excel.SetCellValue("Sheet1", "A1", "节点名")
 	excel.SetCellValue("Sheet1", "B1", "ip地址")
-	excel.SetCellValue("Sheet1", "C1", "是否解锁")
-	excel.SetCellValue("Sheet1", "D1", "详细说明")
+	excel.SetCellValue("Sheet1", "C1", "复用次数")
+	excel.SetCellValue("Sheet1", "D1", "是否解锁")
+	excel.SetCellValue("Sheet1", "E1", "详细说明")
 
 	index := 1
 	nodes := config.Proxies
@@ -188,8 +189,11 @@ func main() {
 
 		excel.SetCellValue("Sheet1", "A"+strconv.Itoa(index+1), node)
 		excel.SetCellValue("Sheet1", "B"+strconv.Itoa(index+1), ip)
-		excel.SetCellValue("Sheet1", "C"+strconv.Itoa(index+1), ok)
-		excel.SetCellValue("Sheet1", "D"+strconv.Itoa(index+1), out)
+		if ip != "" {
+			excel.SetCellFormula("Sheet1", "C"+strconv.Itoa(index+1), "= COUNTIF(B:B,B"+strconv.Itoa(index+1)+")")
+		}
+		excel.SetCellValue("Sheet1", "D"+strconv.Itoa(index+1), ok)
+		excel.SetCellValue("Sheet1", "E"+strconv.Itoa(index+1), out)
 
 		index++
 	}
