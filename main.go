@@ -198,7 +198,7 @@ func main() {
 		index++
 	}
 
-	if err := excel.SaveAs("Netflix.xlsx"); err != nil {
+	if err := excel.SaveAs(exPath+"/Netflix.xlsx"); err != nil {
 		fmt.Println(err)
 	}
 }
