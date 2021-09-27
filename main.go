@@ -7,6 +7,7 @@ import (
 	"github.com/Dreamacro/clash/hub/executor"
 	"github.com/Dreamacro/clash/listener/http"
 	"github.com/axgle/mahonia" //编码转换
+	"github.com/xuri/excelize/v2"
 	"io"
 	"io/ioutil"
 	"net"
@@ -21,8 +22,10 @@ import (
 
 var proxy constant.Proxy
 var proxyUrl = "127.0.0.1:"
+var exPath string
 
 func getIP() string {
+
 	proxy, _ := url.Parse("http://" + proxyUrl)
 	client := h.Client{
 		Timeout: 5 * time.Second,
@@ -62,17 +65,20 @@ func GetAvailablePort() (int, error) {
 
 }
 
-func main() {
+func downloadConfig() {
 	ex, err := os.Executable()
 	if err != nil {
 		panic(err)
 	}
-	exPath := filepath.Dir(ex)
+	exPath = filepath.Dir(ex)
 	fmt.Println(exPath)
 	//输入订阅链接
 	fmt.Println("请输入clash订阅链接(非clash订阅请进行订阅转换)")
 	var urlConfig string
-	fmt.Scanln(&urlConfig)
+	_, err = fmt.Scanln(&urlConfig)
+	if err != nil {
+		panic(err)
+	}
 	//下载配置信息
 	res, err := h.Get(urlConfig)
 	if err != nil {
@@ -80,15 +86,34 @@ func main() {
 		time.Sleep(10 * time.Second)
 		return
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(res.Body)
 	//创建配置文件
 	f, err := os.OpenFile(exPath+"/config.yaml", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0777)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(f)
 	if err != nil {
 		fmt.Println("clash的订阅链接下载失败！")
 		time.Sleep(10 * time.Second)
 		return
 	}
-	io.Copy(f, res.Body)
+	_, err = io.Copy(f, res.Body)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func main() {
+	downloadConfig()
+
 	//解析配置信息
 	config, err := executor.ParseWithPath(exPath + "/config.yaml")
 	if err != nil {
@@ -127,11 +152,19 @@ func main() {
 	}()
 
 	//创建netflix.txt
-	f, err = os.OpenFile(exPath+"/netflix.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	f, err := os.OpenFile(exPath+"/netflix.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	defer f.Close()
 	if err != nil {
 		fmt.Println("新建netflix.txt失败：", err)
 	}
+
+	//创建excel
+	excel := excelize.NewFile()
+	excel.SetCellValue("Sheet1", "A1", "节点名")
+	excel.SetCellValue("Sheet1", "B1", "ip地址")
+	excel.SetCellValue("Sheet1", "C1", "是否解锁")
+	excel.SetCellValue("Sheet1", "D1", "详细说明")
+
 	index := 1
 	nodes := config.Proxies
 
@@ -144,13 +177,24 @@ func main() {
 		ip := getIP()
 		str := fmt.Sprintf("%d   节点名: %s ip地址:%s\n", index, node, ip)
 		fmt.Print(str)
+
 		//Netflix检测
-		_, out := nf.NF("http://" + proxyUrl)
+		ok, out := nf.NF("http://" + proxyUrl)
 		if out == "" {
 			out = "完全不支持Netflix"
 		}
 		fmt.Println(out)
 		fmt.Fprintln(f, enc.ConvertString(str+out))
+
+		excel.SetCellValue("Sheet1", "A"+strconv.Itoa(index+1), node)
+		excel.SetCellValue("Sheet1", "B"+strconv.Itoa(index+1), ip)
+		excel.SetCellValue("Sheet1", "C"+strconv.Itoa(index+1), ok)
+		excel.SetCellValue("Sheet1", "D"+strconv.Itoa(index+1), out)
+
 		index++
+	}
+
+	if err := excel.SaveAs("Netflix.xlsx"); err != nil {
+		fmt.Println(err)
 	}
 }
