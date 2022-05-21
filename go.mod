@@ -1,10 +1,11 @@
 module netflix-all-verify
 
-go 1.17
+go 1.18
 
 require (
 	github.com/Dreamacro/clash v1.7.1
 	github.com/axgle/mahonia v0.0.0-20180208002826-3358181d7394
+	github.com/sjlleo/netflix-verify v0.0.0-20220521091733-ed8f48835c9e
 	github.com/xuri/excelize/v2 v2.4.1
 )
 
